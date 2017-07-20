@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>TODO</title>
+    <title>Tweets from Tiny Hands</title>
     <%= csrf_meta_tags %>
     <%= action_cable_meta_tag %>
     <%= stylesheet_link_tag 'application', media: 'all' %>
@@ -11,5 +11,28 @@
   <body>
     <%= yield %>
     <%= javascript_include_tag 'application' %>
+    <script type="text/javascript">
+var chart = dc.pieChart("#test");
+d3.csv('<%= asset_path 'morley.csv' %>', function(error, experiments) {
+  var ndx           = crossfilter(experiments),
+      runDimension  = ndx.dimension(function(d) {return "run-"+d.Run;})
+      speedSumGroup = runDimension.group().reduceSum(function(d) {return d.Speed * d.Run;});
+  chart
+    .width(768)
+    .height(480)
+    .slicesCap(4)
+    .innerRadius(100)
+    .dimension(runDimension)
+    .group(speedSumGroup)
+    .legend(dc.legend())
+    // workaround for #703: not enough data is accessible through .label() to display percentages
+    .on('pretransition', function(chart) {
+        chart.selectAll('text.pie-slice').text(function(d) {
+            return d.data.key + ' ' + dc.utils.printSingleValue((d.endAngle - d.startAngle) / (2*Math.PI) * 100) + '%';
+        })
+    });
+  chart.render();
+});
+</script>
   </body>
 </html>
