@@ -12,27 +12,146 @@
     <%= yield %>
     <%= javascript_include_tag 'application' %>
     <script type="text/javascript">
-var chart = dc.pieChart("#test");
-d3.csv('<%= asset_path 'morley.csv' %>', function(error, experiments) {
-  var ndx           = crossfilter(experiments),
-      runDimension  = ndx.dimension(function(d) {return "run-"+d.Run;})
-      speedSumGroup = runDimension.group().reduceSum(function(d) {return d.Speed * d.Run;});
-  chart
-    .width(768)
-    .height(480)
-    .slicesCap(4)
-    .innerRadius(100)
-    .dimension(runDimension)
-    .group(speedSumGroup)
-    .legend(dc.legend())
-    // workaround for #703: not enough data is accessible through .label() to display percentages
-    .on('pretransition', function(chart) {
-        chart.selectAll('text.pie-slice').text(function(d) {
-            return d.data.key + ' ' + dc.utils.printSingleValue((d.endAngle - d.startAngle) / (2*Math.PI) * 100) + '%';
-        })
-    });
-  chart.render();
-});
-</script>
+      // Create chart objects.
+      // var dataCount = dc.dataTable('.dc-data-count');
+      var dayChart = dc.rowChart('#day-chart');
+      var hourChart = dc.barChart('#hour-chart');
+      var deviceChart = dc.pieChart('#device-chart');
+      var sentimentChart = dc.pieChart('#sentiment-chart');
+      var volumeChart = dc.barChart('#volume-chart');
+      var dataTable = dc.dataTable('.dc-data-table');
+
+      // Various formatters.
+      var parseDateFormat = d3.time.format("%a %b %d %X %Z %Y");
+      var formatDate = d3.time.format('%a %m/%d');
+      var formatTime = d3.time.format('%I:%M %p');
+
+
+      d3.json('<%= asset_path 'tweets.json' %>', function (data) {
+
+
+          // Casting data into expected formats.
+          data.forEach(function(d, i) {
+              d.parsedDate = parseDateFormat.parse(d.created_at);
+              d.date = formatDate(d.parsedDate);
+              d.time = formatTime(d.parsedDate);
+          });
+
+          // Load the data into CrossFilter.
+          var facts = crossfilter(data);
+
+          // Create data dimensions and groupings.
+          var all = facts.groupAll();
+
+          // Create full date dimension.
+          var dateDimension = facts.dimension(function (d) { return d.parsedDate; });
+          var dateGroup = dateDimension.group(d3.time.day);
+
+          // Create time-of-day dimension.
+          var hourDimension = facts.dimension(function(d) { return d.parsedDate.getHours() + d.parsedDate.getMinutes() / 60; });
+          var hourGroup = hourDimension.group(Math.floor);
+
+          // Create categorical day-of-week dimension
+          var dayOfWeek = facts.dimension(function (d) {
+              var day = d.parsedDate.getDay();
+              var name = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+              return day + '.' + name[day];
+          });
+          var dayOfWeekGroup = dayOfWeek.group();
+
+          // Create categorical device dimension
+          var deviceDimension = facts.dimension(function (d) {
+            if (d.device === 'Android' || d.device === 'iPhone' ) {
+                return d.device;
+            } else {
+                return 'Other'
+            }
+          });
+          var deviceGroup = deviceDimension.group();
+
+          // Create categorical device dimension
+          var sentimentDimension = facts.dimension(function (d) { return d.sentiment; });
+          var sentimentGroup = sentimentDimension.group();
+
+          // count all the facts
+          dc.dataCount(".dc-data-count")
+              .dimension(facts)
+              .group(all);
+
+          // Day of week row chart
+          dayChart.height(200).width(225)
+              .margins({top: 10, left: 10, right: 10, bottom: 40})
+              .dimension(dayOfWeek)
+              .group(dayOfWeekGroup)
+              .ordinalColors(['#01579B', '#0277BD', '#0288D1', '#039BE5', '#03A9F4', '#29B6F6', '#4FC3F7'])
+              .label(function (d) { return d.key.split('.')[1]; })
+              .title(function(d) {return d.value + ' tweets';})
+              .elasticX(true)
+              .xAxis().ticks(4);
+
+          // Time of day bar chart
+          hourChart.height(200).width(325)
+              .margins({top: 15, left: 30, right: 15, bottom: 30})
+              .dimension(hourDimension)
+              .group(hourGroup)
+              .gap(1)
+              .x(d3.scale.linear().domain([0, 24]))
+              .title(function(d) {return d.value + ' tweets';})
+              .xAxisLabel('Time of Day (24hr)')
+              .elasticY(true)
+              .yAxis().ticks(3);
+
+          // Device pie chart
+          deviceChart.height(160).width(175)
+              .radius(75)
+              .innerRadius(20)
+              .dimension(deviceDimension)
+              .group(deviceGroup)
+              .ordinalColors(['#76FF03', '#424242', '#0091EA'])
+              .title(function(d) {return d.value + ' tweets';})
+              .label(function (d) { return d.key });
+
+
+              // Device pie chart
+          sentimentChart.height(160).width(175)
+              .radius(75)
+              .dimension(sentimentDimension)
+              .group(sentimentGroup)
+              .ordinalColors(['#ff0000', '#ffff00', '#00cf00'])
+              .title(function(d) {return d.value + ' tweets';})
+              .label(function (d) { return d.key });
+
+          // Tweet bar chart
+          volumeChart.height(175).width(1000)
+              .margins({top: 20, left: 30, right: 20, bottom: 30})
+              .dimension(dateDimension)
+              .group(dateGroup)
+              .round(d3.time.day.round)
+              .x(d3.time.scale().domain(d3.extent(data, function(d) { return d.parsedDate; })))
+              // .x(d3.time.scale().domain([new Date(2015, 5, 15), new Date(2017, 3, 1)]))
+              .yAxisLabel('Tweets')
+              .yAxis().ticks(5);
+
+          // Data table
+          dataTable
+              .dimension(dateDimension)
+              .group(function(d) { return "Tweet Table" })
+              .size(100)
+              .columns([
+                  'date',
+                  'time',
+                  'tweet',
+                  'device'
+              ])
+              .sortBy(function(d){ return d.parsedDate; })
+              .order(d3.descending)
+              .on('renderlet', function (table) {
+                  table.select('tr.dc-table-group').remove();
+              });
+
+          dc.renderAll();
+
+      });
+    </script>
   </body>
 </html>

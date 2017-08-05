@@ -1,9 +1,96 @@
 <h1>Tweets from Tiny Hands</h1>
-<p>Find me in app/views/pages/home.html.erb</p>
 
+<!-- TODO -->
+<!-- fix device source post-3/28 -->
+
+<!-- CHARTS -->
 <div class="container">
+  <div class="section">
 
-<div id="test"></div>
 
+    <div class="row">
+      <div class="col s12 center">
+
+        <div id="sentiment-chart">
+            <strong>Tweets by Sentiment</strong>
+            <a class="reset" href="javascript:sentimentChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+
+            <div class="clearfix"></div>
+        </div>
+
+        <div id="day-chart">
+            <strong>Tweets by Day</strong>
+            <a class="reset" href="javascript:dayChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+
+            <div class="clearfix"></div>
+        </div>
+
+        <div id="hour-chart">
+            <strong>Tweets by Hour</strong>
+            <a class="reset" href="javascript:hourChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+
+            <div class="clearfix"></div>
+        </div>
+
+        <div id="device-chart">
+            <strong>Tweets by Device</strong>
+            <a class="reset" href="javascript:deviceChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+
+            <div class="clearfix"></div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <div class="row">
+      <div class="col s12 center">
+
+        <div id="volume-chart">
+            <strong>Tweet Timeline</strong>
+            <a class="reset" href="javascript:volumeChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+
+            <div class="clearfix"></div>
+        </div>
+
+      </div>
+    </div>
+
+
+  </div>
 </div>
 
+
+<!-- PARALLAX SKINNY -->
+  <div class="section">
+    <div class="container">
+      <div class="row center">
+        <div>
+          <div class="dc-data-count">
+            <p><span class="filter-count"></span> selected out of <span class="total-count"></span> records | <a
+                  href="javascript:dc.filterAll(); dc.renderAll();">Reset All</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+<!-- DATATABLE -->
+<div class="container">
+  <div class="section">
+
+    <div class="row">
+      <div class="col s12 center">
+
+
+        <table class="table bordered highlight dc-data-table"></table>
+
+        <div class="clearfix"></div>
+
+
+      </div>
+    </div>
+
+  </div>
+</div>
